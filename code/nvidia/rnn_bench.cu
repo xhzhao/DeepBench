@@ -143,7 +143,7 @@ class cudnnRNN {
             rnn_desc_ = RNNDescriptor<T>(hidden_size,
                                              1,
                                              dropout_.desc(),
-                                             CUDNN_SKIP_INPUT,
+                                             CUDNN_LINEAR_INPUT,
                                              CUDNN_UNIDIRECTIONAL,
                                              rnn_type,
                                              cudnn_handle);
@@ -301,8 +301,9 @@ std::tuple<int, int, int> time_rnn(int hidden_size,
 
     for (int i = 0; i < numRepeats; ++i) {
         rnn.forward(x, hx, cx, y, hy, cy);
+        cudaDeviceSynchronize();
     }
-    cudaDeviceSynchronize();
+
 
     auto end = std::chrono::steady_clock::now();
 
@@ -322,8 +323,9 @@ std::tuple<int, int, int> time_rnn(int hidden_size,
         for (int i = 0; i < numRepeats; ++i) {
             rnn.backward_data(y, dy, dhy, dcy,
                               hx, cx, dx, dhx, dcx);
+            cudaDeviceSynchronize();
         }
-        cudaDeviceSynchronize();
+
 
         end = std::chrono::steady_clock::now();
         bwd_data_time = std::chrono::duration<double, std::micro>(end - start).count() / numRepeats;
@@ -338,9 +340,10 @@ std::tuple<int, int, int> time_rnn(int hidden_size,
 
         for (int i = 0; i < numRepeats; ++i) {
             rnn.backward_params(x, hx, y);
+            cudaDeviceSynchronize();
         }
 
-        cudaDeviceSynchronize();
+
 
         end = std::chrono::steady_clock::now();
         bwd_params_time = std::chrono::duration<double, std::micro>(end - start).count() / numRepeats;
